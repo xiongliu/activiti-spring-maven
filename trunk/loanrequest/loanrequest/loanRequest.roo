@@ -1,0 +1,11 @@
+// Spring Roo 1.2.1.RELEASE [rev 6eae723] log opened at 2012-04-28 09:38:49
+project --topLevelPackage org.springsource.roo.loanrequest
+jpa setup --provider HIBERNATE --database HYPERSONIC_IN_MEMORY
+entity jpa --class ~.server.domain.LoanRequest --testAutomatically
+field string --fieldName processId
+field string --fieldName customerName
+field number --type java.lang.Double --fieldName amount
+web mvc setup
+web mvc all --package ~.web
+security setup
+logging setup --level WARN --package WEB
