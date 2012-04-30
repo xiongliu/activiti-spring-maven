@@ -145,25 +145,7 @@ public class LoanRequestController {
 			ProcessInstance processInstance = runtimeService.startProcessInstanceByKey("loanProcess");
 			logger.debug("startProcess processInstance Id=" + processInstance.getId());
 
-			User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-			List<Task> tasks = taskService.createTaskQuery().taskCandidateUser(user.getUsername()).list();
-			logger.debug("startProcess task size=" + tasks.size());
-			for (Task task : tasks) {
-				logger.debug("Task Name = " + task.getName());
-				if (task.getName().equals(submitTaskName)) {
-					logger.debug("startProcess before claim = " + task.getName());
-					taskService.claim(task.getId(), user.getUsername());
-					List<Task> tasks1 = taskService.createTaskQuery().taskAssignee(user.getUsername()).list();
-
-					for (Task task1 : tasks1) {
-						if (task1.getName().equals(approveTaskName)) {
-							logger.debug("startProcess before complete = " + task1.getName());
-							taskService.complete(task1.getId());
-							return processInstance.getId();
-						}
-					}
-				}
-			}
+			claimAndComplete(processInstance.getId());
 		}
 		return "";
 	}
@@ -173,24 +155,28 @@ public class LoanRequestController {
 
 		logger.debug("in the approveProcess ");
 		if (!loanRequest.getProcessId().isEmpty() && request.isUserInRole(approverRole)) {
-			List<Task> tasks = taskService.createTaskQuery().taskCandidateGroup(approverRole).list();
-			User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-			for (Task task : tasks) {
-				logger.debug("approveProcess Task Name = " + task.getName());
-				if (task.getName().equals(approveTaskName)) {
+			claimAndComplete(loanRequest.getProcessId());
+		}
+	}
 
-					logger.debug("approveProcess before claim = " + task.getName());
-					taskService.claim(task.getId(), user.getUsername());
-					List<Task> tasks1 = taskService.createTaskQuery().taskAssignee(user.getUsername()).list();
+	private void claimAndComplete(String processInstanceId) {
+		User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+		List<Task> tasks = taskService.createTaskQuery().taskCandidateUser(user.getUsername()).list();
+		logger.debug("startProcess task size=" + tasks.size());
+		Task task = getTask(tasks, processInstanceId);
+		if (task != null) {
+			logger.debug("got the task=" + tasks.size());
+			taskService.claim(task.getId(), user.getUsername());
+			taskService.complete(task.getId());
+		}
+	}
 
-					for (Task task1 : tasks1) {
-						if (task1.getName().equals(approveTaskName)) {
-							logger.debug("approveProcess before complete = " + task1.getName());
-							taskService.complete(task1.getId());
-						}
-					}
-				}
+	private Task getTask(List<Task> tasks, String processInstanceId) {
+		for (Task task : tasks) {
+			if (task.getProcessInstanceId().equals(processInstanceId)) {
+				return task;
 			}
 		}
+		return null;
 	}
 }
