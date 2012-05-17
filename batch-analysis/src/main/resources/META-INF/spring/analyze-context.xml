@@ -14,8 +14,7 @@
 
 	<hive-tasklet id="hive-script">
 		<script>
-			LOAD DATA LOCAL INPATH '/home/hduser/batch-wordcount/weblogs_parse.txt' OVERWRITE INTO TABLE weblogs;
-			INSERT OVERWRITE TABLE hbase_weblogs_1 SELECT * FROM weblogs;
+			SELECT client_ip, count(user) FROM hbase_weblogs_1 GROUP by client_ip;
 		</script>
 	</hive-tasklet>
 
