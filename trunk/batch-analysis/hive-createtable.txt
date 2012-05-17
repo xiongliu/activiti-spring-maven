@@ -1,0 +1,78 @@
+//hdfs default port is 54310
+bin/start-all.sh
+
+<configuration>
+  <property>
+    <name>hbase.rootdir</name>
+    <value>hdfs://localhost:54310/hbase</value>
+  </property>
+</configuration>
+//default port is 60000
+bin/start-hbase.sh
+
+//default port is 10000
+hive-0.8.1-bin/bin/hive --auxpath lib/hive-hbase-handler-0.8.1.jar,lib/zookeeper-3.3.1.jar,lib/hbase-0.92.1.jar --service hiveserver -hiveconf hbase.master=localhost:60000
+
+//spring batch config
+	<configuration>
+	    <!-- The value after the question mark is the default value if another value for hd.fs is not provided -->
+		fs.default.name=${hd.fs:hdfs://localhost:9000}
+	</configuration>
+
+	<hive-client host="localhost" port="10000" >
+   		<script>
+			DROP TABLE IF EXISTS testHiveBatchTable;
+     		CREATE TABLE testHiveBatchTable (key int, value string);
+   		</script>
+	</hive-client>
+
+
+hduser@hadoop1:~$ vi /usr/local/hadoop/conf/core-site.xml 
+hduser@hadoop1:~$ sudo mkdir -p /app/^C
+hduser@hadoop1:~$ tail core
+tail: cannot open `core' for reading: No such file or directory
+hduser@hadoop1:~$ vi /usr/local/hadoop/conf/core-site.xml 
+hduser@hadoop1:~$ sudo mkdir -p /app/hadoop/tmp1
+[sudo] password for hduser: 
+hduser@hadoop1:~$ 
+hduser@hadoop1:~$ 
+hduser@hadoop1:~$ sudo chown hduser:hadoop /app/hadoop/tmp1
+hduser@hadoop1:~$ hadoop namenode -format
+
+
+hadoop-core-1.0.2.jar
+commons-configuration-1.6.jar
+hadoop-examples-1.0.2.jar
+
+bin/hive -h localhost
+----
+
+CREATE TABLE weblogs(key int, client_ip string, day string, month string, 
+year string, hour string, minute string, second string, user string, loc  string)
+row format delimited
+fields terminated by '\t';
+
+CREATE TABLE hbase_weblogs_1(key int, client_ip string, day string, month string, 
+year string, hour string, minute string, second string, user string, loc  string)
+STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+WITH SERDEPROPERTIES ("hbase.columns.mapping" = ":key, cf1:client_ip, cf2:day, cf3:month, cf4:year, cf5:hour, cf6:minute, cf7:second, cf8:user, cf9:loc")
+TBLPROPERTIES ("hbase.table.name" = "hbase_weblog");
+
+LOAD DATA LOCAL INPATH '/home/hduser/batch-wordcount/weblogs_parse1.txt' OVERWRITE INTO TABLE weblogs;
+
+set mapred.job.tracker=local;
+
+INSERT OVERWRITE TABLE hbase_weblogs_1 SELECT * FROM weblogs;
+
+SELECT client_ip, count(user) FROM hbase_weblogs_1 
+GROUP by client_ip;
+
+SELECT * FROM hbase_weblogs_1 
+GROUP by client_ip, user;
+----
+
+some useful commands,
+
+bin/hadoop dfsadmin -safemode leave
+
+bin/hadoop fsck /
